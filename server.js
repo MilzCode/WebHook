@@ -61,17 +61,20 @@ app.get("/", (req, res) => {
         </div>
 
         <script>
-            const dataContainer = document.getElementById("dataContainer");
-            const ws = new WebSocket("ws://" + window.location.host);
+    const dataContainer = document.getElementById("dataContainer");
 
-            ws.onmessage = (event) => {
-                const data = JSON.parse(event.data);
-                const newEntry = document.createElement("div");
-                newEntry.classList = "p-3 bg-blue-100 border-l-4 border-blue-500 rounded";
-                newEntry.innerHTML = "<pre class='text-sm'>" + JSON.stringify(data, null, 2) + "</pre>";
-                dataContainer.prepend(newEntry);
-            };
-        </script>
+    // Detecta si la página usa HTTPS o HTTP
+    const wsProtocol = window.location.protocol === "https:" ? "wss://" : "ws://";
+    const ws = new WebSocket(wsProtocol + window.location.host);
+
+    ws.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        const newEntry = document.createElement("div");
+        newEntry.classList = "p-3 bg-blue-100 border-l-4 border-blue-500 rounded";
+        newEntry.innerHTML = "<pre class='text-sm'>" + JSON.stringify(data, null, 2) + "</pre>";
+        dataContainer.prepend(newEntry);
+    };
+</script>
     </body>
     </html>
     `);
