@@ -60,6 +60,7 @@ app.get("/", (req, res) => {
                 <div>
                     <span class="${methodColor}">${data.method}</span>
                     <span class="ml-2 font-semibold">Recurso:</span> ${data.url}
+                    <span class="ml-2 text-gray-600 text-sm">Hora:</span> ${data.timestamp}
                 </div>
                 <details class="mt-2">
                     <summary class="cursor-pointer text-sm text-gray-600">Mostrar cuerpo de la petición</summary>
@@ -124,6 +125,7 @@ app.get("/", (req, res) => {
                     "<div>" +
                         "<span class='" + methodColor + "'>" + data.method + "</span>" +
                         "<span class='ml-2 font-semibold'>Recurso:</span> " + data.url +
+                        "<span class='ml-2 text-gray-600 text-sm'>Hora:</span> " + data.timestamp +
                     "</div>" +
                     "<details class='mt-2'>" +
                         "<summary class='cursor-pointer text-sm text-gray-600'>Mostrar cuerpo de la petición</summary>" +
@@ -142,7 +144,8 @@ app.all("*", (req, res) => {
     const data = {
         method: req.method,
         url: req.originalUrl,
-        body: req.body
+        body: req.body,
+        timestamp: new Date().toLocaleString()
     };
     console.log("Datos recibidos:", data);
 
