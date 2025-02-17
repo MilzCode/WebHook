@@ -1,6 +1,7 @@
 const express = require("express");
 const cors = require("cors");
 const WebSocket = require("ws");
+const { version } = require("./package.json");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -30,42 +31,46 @@ wss.on("connection", (ws) => {
     console.log("Cliente WebSocket conectado");
 });
 
-// Ruta para recibir datos mediante POST (acepta cualquier objeto)
-app.post("/webhook", (req, res) => {
-    console.log("Datos recibidos:", req.body);
-
-    // Almacenar solicitud y mantener solo las últimas 10
-    lastRequests.push(req.body);
-    if (lastRequests.length > 10) {
-        lastRequests.shift();
-    }
-
-    // Enviar datos a todos los clientes WebSocket
-    wss.clients.forEach(client => {
-        if (client.readyState === WebSocket.OPEN) {
-            client.send(JSON.stringify(req.body)); // Enviar cualquier objeto recibido
-        }
-    });
-
-    res.json({ message: "Datos recibidos", data: req.body });
-});
-
-// Página HTML + Tailwind embebida
+// Página HTML embebida que muestra las últimas peticiones
 app.get("/", (req, res) => {
-    // Generar el HTML con las últimas 10 peticiones (último primero)
     let historyHTML = "";
-    if (lastRequests.length > 0) {
-        [...lastRequests].reverse().forEach(data => {
+    const reversed = [...lastRequests].reverse();
+    if (reversed.length > 0) {
+        reversed.forEach(data => {
+            let methodColor = "";
+            switch(data.method) {
+                case "GET":
+                    methodColor = 'bg-green-500 text-white px-2 py-1 rounded';
+                    break;
+                case "POST":
+                    methodColor = 'bg-blue-500 text-white px-2 py-1 rounded';
+                    break;
+                case "PUT":
+                    methodColor = 'bg-yellow-500 text-white px-2 py-1 rounded';
+                    break;
+                case "DELETE":
+                    methodColor = 'bg-red-500 text-white px-2 py-1 rounded';
+                    break;
+                default:
+                    methodColor = 'bg-gray-500 text-white px-2 py-1 rounded';
+                    break;
+            }
             historyHTML += `
-            <div class="p-3 bg-blue-100 border-l-4 border-blue-500 rounded">
-                <pre class="text-sm">${JSON.stringify(data, null, 2)}</pre>
+            <div class="p-3 bg-blue-100 border-l-4 border-blue-500 rounded shadow mb-2">
+                <div>
+                    <span class="${methodColor}">${data.method}</span>
+                    <span class="ml-2 font-semibold">Recurso:</span> ${data.url}
+                </div>
+                <details class="mt-2">
+                    <summary class="cursor-pointer text-sm text-gray-600">Mostrar cuerpo de la petición</summary>
+                    <pre class="text-sm mt-2">${JSON.stringify(data.body, null, 2)}</pre>
+                </details>
             </div>
             `;
         });
     } else {
         historyHTML = `<p class="text-gray-500">Esperando datos...</p>`;
     }
-
     res.send(`
     <!DOCTYPE html>
     <html lang="es">
@@ -81,24 +86,78 @@ app.get("/", (req, res) => {
             <div id="dataContainer" class="space-y-2">
                 ${historyHTML}
             </div>
+            <footer class="mt-4 text-center text-gray-500 text-sm">
+                Versión: ${version}
+            </footer>
         </div>
 
         <script>
-    const dataContainer = document.getElementById("dataContainer");
+            const dataContainer = document.getElementById("dataContainer");
 
-    // Detecta si la página usa HTTPS o HTTP
-    const wsProtocol = window.location.protocol === "https:" ? "wss://" : "ws://";
-    const ws = new WebSocket(wsProtocol + window.location.host);
+            // Detecta si la página usa HTTPS o HTTP
+            const wsProtocol = window.location.protocol === "https:" ? "wss://" : "ws://";
+            const ws = new WebSocket(wsProtocol + window.location.host);
 
-    ws.onmessage = (event) => {
-        const data = JSON.parse(event.data);
-        const newEntry = document.createElement("div");
-        newEntry.classList = "p-3 bg-blue-100 border-l-4 border-blue-500 rounded";
-        newEntry.innerHTML = "<pre class='text-sm'>" + JSON.stringify(data, null, 2) + "</pre>";
-        dataContainer.prepend(newEntry);
-    };
-</script>
+            ws.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                let methodColor = "";
+                switch(data.method) {
+                    case "GET":
+                        methodColor = 'bg-green-500 text-white px-2 py-1 rounded';
+                        break;
+                    case "POST":
+                        methodColor = 'bg-blue-500 text-white px-2 py-1 rounded';
+                        break;
+                    case "PUT":
+                        methodColor = 'bg-yellow-500 text-white px-2 py-1 rounded';
+                        break;
+                    case "DELETE":
+                        methodColor = 'bg-red-500 text-white px-2 py-1 rounded';
+                        break;
+                    default:
+                        methodColor = 'bg-gray-500 text-white px-2 py-1 rounded';
+                        break;
+                }
+                const newEntry = document.createElement("div");
+                newEntry.classList = "p-3 bg-blue-100 border-l-4 border-blue-500 rounded shadow mb-2";
+                newEntry.innerHTML = 
+                    "<div>" +
+                        "<span class='" + methodColor + "'>" + data.method + "</span>" +
+                        "<span class='ml-2 font-semibold'>Recurso:</span> " + data.url +
+                    "</div>" +
+                    "<details class='mt-2'>" +
+                        "<summary class='cursor-pointer text-sm text-gray-600'>Mostrar cuerpo de la petición</summary>" +
+                        "<pre class='text-sm mt-2'>" + JSON.stringify(data.body, null, 2) + "</pre>" +
+                    "</details>";
+                dataContainer.prepend(newEntry);
+            };
+        </script>
     </body>
     </html>
     `);
+});
+
+// Middleware de captura para cualquier petición (GET, POST, PUT, DELETE, etc.) en cualquier recurso
+app.all("*", (req, res) => {
+    const data = {
+        method: req.method,
+        url: req.originalUrl,
+        body: req.body
+    };
+    console.log("Datos recibidos:", data);
+
+    // Almacenar solicitud y mantener solo las últimas 10
+    lastRequests.push(data);
+    if (lastRequests.length > 10) {
+        lastRequests.shift();
+    }
+
+    // Enviar datos a todos los clientes WebSocket
+    wss.clients.forEach(client => {
+        if (client.readyState === WebSocket.OPEN) {
+            client.send(JSON.stringify(data));
+        }
+    });
+
+    res.json({ message: "Datos recibidos", data });
 });
