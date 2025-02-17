@@ -8,6 +8,9 @@ const PORT = process.env.PORT || 3000;
 app.use(express.json());
 app.use(cors());
 
+// Almacén de las últimas 10 peticiones
+let lastRequests = [];
+
 // Servidor WebSocket
 const wss = new WebSocket.Server({ noServer: true });
 
@@ -31,6 +34,12 @@ wss.on("connection", (ws) => {
 app.post("/webhook", (req, res) => {
     console.log("Datos recibidos:", req.body);
 
+    // Almacenar solicitud y mantener solo las últimas 10
+    lastRequests.push(req.body);
+    if (lastRequests.length > 10) {
+        lastRequests.shift();
+    }
+
     // Enviar datos a todos los clientes WebSocket
     wss.clients.forEach(client => {
         if (client.readyState === WebSocket.OPEN) {
@@ -43,6 +52,20 @@ app.post("/webhook", (req, res) => {
 
 // Página HTML + Tailwind embebida
 app.get("/", (req, res) => {
+    // Generar el HTML con las últimas 10 peticiones (último primero)
+    let historyHTML = "";
+    if (lastRequests.length > 0) {
+        [...lastRequests].reverse().forEach(data => {
+            historyHTML += `
+            <div class="p-3 bg-blue-100 border-l-4 border-blue-500 rounded">
+                <pre class="text-sm">${JSON.stringify(data, null, 2)}</pre>
+            </div>
+            `;
+        });
+    } else {
+        historyHTML = `<p class="text-gray-500">Esperando datos...</p>`;
+    }
+
     res.send(`
     <!DOCTYPE html>
     <html lang="es">
@@ -56,7 +79,7 @@ app.get("/", (req, res) => {
         <div class="max-w-2xl mx-auto bg-white p-6 rounded-lg shadow-md">
             <h2 class="text-xl font-bold text-center mb-4">📊 Últimos Datos Recibidos</h2>
             <div id="dataContainer" class="space-y-2">
-                <p class="text-gray-500">Esperando datos...</p>
+                ${historyHTML}
             </div>
         </div>
 
