@@ -87,6 +87,7 @@ app.get("/", (req, res) => {
             <div id="dataContainer" class="space-y-2">
                 ${historyHTML}
             </div>
+            <button id="clearButton" class="mt-4 bg-red-500 text-white px-4 py-2 rounded">Clear</button>
             <footer class="mt-4 text-center text-gray-500 text-sm">
                 Versión: ${version}
             </footer>
@@ -94,6 +95,7 @@ app.get("/", (req, res) => {
 
         <script>
             const dataContainer = document.getElementById("dataContainer");
+            const clearButton = document.getElementById("clearButton");
 
             // Detecta si la página usa HTTPS o HTTP
             const wsProtocol = window.location.protocol === "https:" ? "wss://" : "ws://";
@@ -133,6 +135,16 @@ app.get("/", (req, res) => {
                     "</details>";
                 dataContainer.prepend(newEntry);
             };
+
+            clearButton.addEventListener("click", () => {
+                fetch("/_clear_data_logs_ws", { method: "DELETE" })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            dataContainer.innerHTML = "";
+                        }
+                    });
+            });
         </script>
     </body>
     </html>
@@ -163,4 +175,10 @@ app.all("*", (req, res) => {
     });
 
     res.json({ message: "Datos recibidos", data });
+});
+
+// Endpoint para limpiar la lista de peticiones
+app.delete("/_clear_data_logs_ws", (req, res) => {
+    lastRequests = [];
+    res.json({ success: true });
 });
