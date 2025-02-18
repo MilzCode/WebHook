@@ -51,7 +51,9 @@ app.get("/", (req, res) => {
             const sanitizedMethod = purify.sanitize(data.method);
             const sanitizedUrl = purify.sanitize(data.url);
             const sanitizedTimestamp = purify.sanitize(data.timestamp);
-            const sanitizedBody = purify.sanitize(JSON.stringify(data.body, null, 2));
+            const sanitizedBody = (typeof data.body === "string")
+                ? DOMPurify.sanitize(data.body)
+                : DOMPurify.sanitize(JSON.stringify(data.body, null, 2));
             let methodColor = "";
             switch(sanitizedMethod) {
                 case "GET":
@@ -156,7 +158,9 @@ app.get("/", (req, res) => {
                 const sanitizedMethod = DOMPurify.sanitize(data.method);
                 const sanitizedUrl = DOMPurify.sanitize(data.url);
                 const sanitizedTimestamp = DOMPurify.sanitize(data.timestamp);
-                const sanitizedBody = DOMPurify.sanitize(JSON.stringify(data.body, null, 2));
+                const sanitizedBody = (typeof data.body === "string")
+                    ? DOMPurify.sanitize(data.body)
+                    : DOMPurify.sanitize(JSON.stringify(data.body, null, 2));
 
                 let methodColor = "";
                 switch(sanitizedMethod) {
@@ -254,7 +258,7 @@ app.delete("/__clear_data_logs_ws", (req, res) => {
     res.json({ success: true });
 });
 
-app.delete("__default_custom_response", (req, res) => {
+app.delete("/__default_custom_response", (req, res) => {
     customResponse = null;
     customResponseType = 'json';
     res.json({ success: true });
