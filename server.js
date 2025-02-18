@@ -275,9 +275,6 @@ app.delete("/__default_custom_response", (req, res) => {
 // Endpoint para establecer la respuesta personalizada
 app.post("/__set_custom_response", (req, res) => {
     const { responseType, responseBody } = req.body;
-    // const window = new JSDOM('').window;
-    // const purify = DOMPurify(window);
-    // Sanitizamos el input con la instancia global
     const sanitizedResponseBody = DOMPurify.sanitize(responseBody);
     
     // Se asume que si se selecciona JSON, el body debe ser válido
