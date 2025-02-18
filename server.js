@@ -130,6 +130,7 @@ app.get("/", (req, res) => {
                 </div>
                 <div class="flex justify-end gap-2">
                     <button id="cancelModal" class="bg-gray-500 text-white px-4 py-2 rounded">Cancelar</button>
+                    <button id="resetModal" class="bg-yellow-500 text-white px-4 py-2 rounded">Resetear</button>
                     <button id="saveModal" class="bg-green-500 text-white px-4 py-2 rounded">Guardar</button>
                 </div>
             </div>
@@ -144,6 +145,7 @@ app.get("/", (req, res) => {
             const saveModal = document.getElementById("saveModal");
             const responseType = document.getElementById("responseType");
             const responseBody = document.getElementById("responseBody");
+            const resetModal = document.getElementById("resetModal");
 
             // WebSocket
             const wsProtocol = window.location.protocol === "https:" ? "wss://" : "ws://";
@@ -191,7 +193,7 @@ app.get("/", (req, res) => {
             };
 
             clearButton.addEventListener("click", () => {
-                fetch("/_clear_data_logs_ws", { method: "DELETE" })
+                fetch("/__clear_data_logs_ws", { method: "DELETE" })
                     .then(response => response.json())
                     .then(data => {
                         if (data.success) {
@@ -214,7 +216,7 @@ app.get("/", (req, res) => {
                     responseType: responseType.value,
                     responseBody: responseBody.value
                 };
-                fetch("/_set_custom_response", {
+                fetch("/__set_custom_response", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify(payload)
@@ -227,6 +229,19 @@ app.get("/", (req, res) => {
                     }
                 });
             });
+
+            resetModal.addEventListener("click", () => {
+                fetch("/__default_custom_response", { method: "DELETE" })
+                    .then(response => response.json())
+                    .then(data => {
+                        if(data.success){
+                            responseType.value = "json";
+                            responseBody.value = "";
+                            modal.classList.add("hidden");
+                            alert("Respuesta personalizada reseteada a estado default.");
+                        }
+                    });
+            });
         </script>
     </body>
     </html>
@@ -234,13 +249,19 @@ app.get("/", (req, res) => {
 });
 
 // Endpoint para limpiar la lista de peticiones
-app.delete("/_clear_data_logs_ws", (req, res) => {
+app.delete("/__clear_data_logs_ws", (req, res) => {
     lastRequests = [];
     res.json({ success: true });
 });
 
+app.delete("__default_custom_response", (req, res) => {
+    customResponse = null;
+    customResponseType = 'json';
+    res.json({ success: true });
+});
+
 // Endpoint para establecer la respuesta personalizada
-app.post("/_set_custom_response", (req, res) => {
+app.post("/__set_custom_response", (req, res) => {
     const { responseType, responseBody } = req.body;
     const window = new JSDOM('').window;
     const purify = DOMPurify(window);
@@ -263,25 +284,8 @@ app.post("/_set_custom_response", (req, res) => {
 
 // Middleware de captura para cualquier petición (GET, POST, PUT, DELETE, etc.) en cualquier recurso
 app.all("*", (req, res) => {
-
-    // Si se estableció una respuesta personalizada, se envía y se omite la lógica normal
-    if(customResponse !== null){
-        if(customResponseType === "text"){
-            res.set("Content-Type", "text/plain");
-            return res.send(customResponse);
-        } else {
-            try {
-                const parsed = JSON.parse(customResponse);
-                return res.json(parsed);
-            } catch(e) {
-                // Si ocurre error durante el parse, se envía el body tal cual
-                return res.json({ response: customResponse });
-            }
-        }
-    }
-
     let body;
-    if (req.is('text/plain')) {
+    if (req.is("text/plain")) {
         body = req.body;
     } else {
         try {
@@ -297,6 +301,7 @@ app.all("*", (req, res) => {
         body: body,
         timestamp: new Date().toLocaleString()
     };
+
     console.log("Datos recibidos:", data);
 
     // Almacenar solicitud y mantener solo las últimas 10
@@ -312,5 +317,20 @@ app.all("*", (req, res) => {
         }
     });
 
-    res.json({ message: "Datos recibidos", data });
+    // Enviar respuesta personalizada si existe o la respuesta por defecto
+    if (customResponse !== null) {
+        if (customResponseType === "text") {
+            res.set("Content-Type", "text/plain");
+            return res.send(customResponse);
+        } else {
+            try {
+                const parsed = JSON.parse(customResponse);
+                return res.json(parsed);
+            } catch (e) {
+                return res.json({ response: customResponse });
+            }
+        }
+    } else {
+        return res.json({ message: "Datos recibidos", data });
+    }
 });
