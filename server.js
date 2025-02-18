@@ -256,6 +256,10 @@ app.get("/", (req, res) => {
     `);
 });
 
+app.get("/favicon.ico", (req, res) => {
+    res.status(204).end();
+});
+
 // Endpoint para limpiar la lista de peticiones
 app.delete("/__clear_data_logs_ws", (req, res) => {
     lastRequests = [];
