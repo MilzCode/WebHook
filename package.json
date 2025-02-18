@@ -1,6 +1,6 @@
 {
   "name": "monitor-posiciones",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "Servidor Express con WebSocket y frontend en HTML + Tailwind",
   "main": "server.js",
   "scripts": {

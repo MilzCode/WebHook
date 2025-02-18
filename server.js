@@ -151,6 +151,12 @@ app.get("/", (req, res) => {
     `);
 });
 
+// Endpoint para limpiar la lista de peticiones
+app.delete("/_clear_data_logs_ws", (req, res) => {
+    lastRequests = [];
+    res.json({ success: true });
+});
+
 // Middleware de captura para cualquier petición (GET, POST, PUT, DELETE, etc.) en cualquier recurso
 app.all("*", (req, res) => {
     const data = {
@@ -175,10 +181,4 @@ app.all("*", (req, res) => {
     });
 
     res.json({ message: "Datos recibidos", data });
-});
-
-// Endpoint para limpiar la lista de peticiones
-app.delete("/_clear_data_logs_ws", (req, res) => {
-    lastRequests = [];
-    res.json({ success: true });
 });
