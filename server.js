@@ -3,8 +3,12 @@ const cors = require("cors");
 const WebSocket = require("ws");
 const { version } = require("./package.json");
 const bodyParser = require("body-parser");
-const DOMPurify = require('dompurify');
+
+// Importar y crear instancia de DOMPurify para Node
+const createDOMPurify = require('dompurify');
 const { JSDOM } = require('jsdom');
+const window = new JSDOM('').window;
+const DOMPurify = createDOMPurify(window);
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -267,10 +271,10 @@ app.delete("/__default_custom_response", (req, res) => {
 // Endpoint para establecer la respuesta personalizada
 app.post("/__set_custom_response", (req, res) => {
     const { responseType, responseBody } = req.body;
-    const window = new JSDOM('').window;
-    const purify = DOMPurify(window);
-    // Sanitizamos el input
-    const sanitizedResponseBody = purify.sanitize(responseBody);
+    // const window = new JSDOM('').window;
+    // const purify = DOMPurify(window);
+    // Sanitizamos el input con la instancia global
+    const sanitizedResponseBody = DOMPurify.sanitize(responseBody);
     
     // Se asume que si se selecciona JSON, el body debe ser válido
     if (responseType === "json") {
