@@ -19,6 +19,7 @@ app.use(bodyParser.text({ type: 'text/plain' }));
 
 // Almacén de las últimas 10 peticiones
 let lastRequests = [];
+const maxRequestsHistory = 200;
 
 // Variables para respuesta personalizada
 let customResponse = null;
@@ -313,9 +314,9 @@ app.all("*", (req, res) => {
 
     console.log("Datos recibidos:", data);
 
-    // Almacenar solicitud y mantener solo las últimas 10
+    // Almacenar solicitud y mantener solo las últimas maxRequestsHistory
     lastRequests.push(data);
-    if (lastRequests.length > 200) {
+    if (lastRequests.length > maxRequestsHistory) {
         lastRequests.shift();
     }
 
