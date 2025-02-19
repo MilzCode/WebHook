@@ -315,7 +315,7 @@ app.all("*", (req, res) => {
 
     // Almacenar solicitud y mantener solo las últimas 10
     lastRequests.push(data);
-    if (lastRequests.length > 10) {
+    if (lastRequests.length > 200) {
         lastRequests.shift();
     }
 
